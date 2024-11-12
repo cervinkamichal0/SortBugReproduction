@@ -1,0 +1,133 @@
+﻿@page "/"
+@using System.Diagnostics.CodeAnalysis
+@using System.Data
+
+<PageTitle>Dynamic object sorting</PageTitle>
+<h1>Dynamic object sorting</h1>
+
+@* Visual demonstration of .Sort *@
+<ListView TItem="IDynamicObject" Items="@Unsorted">
+    <HeaderTemplate>
+        <h2>Unsorted</h2>
+    </HeaderTemplate>
+        <BodyTemplate>
+
+        <Card>
+            <BodyTemplate>
+                @context.GetValue("ID") | @context.GetValue("Name")
+            </BodyTemplate>
+        </Card>
+
+        </BodyTemplate>
+</ListView>
+
+@* Visual demonstration of .Sort *@
+<ListView TItem="IDynamicObject" Items="@SortedById">
+    <HeaderTemplate>
+        <h2>Sorted by ID</h2>
+    </HeaderTemplate>
+    <BodyTemplate>
+
+        <Card>
+            <BodyTemplate>
+                @context.GetValue("ID") | @context.GetValue("Name")
+            </BodyTemplate>
+        </Card>
+
+    </BodyTemplate>
+</ListView>
+
+@* Visual demonstration of .Sort *@
+<ListView TItem="IDynamicObject" Items="@SortedByName">
+    <HeaderTemplate>
+        <h2>Unsorted</h2>
+    </HeaderTemplate>
+    <BodyTemplate>
+
+        <Card>
+            <BodyTemplate>
+                @context.GetValue("ID") | @context.GetValue("Name")
+            </BodyTemplate>
+        </Card>
+
+    </BodyTemplate>
+</ListView>
+
+
+@code {
+
+    private Table<DynamicObject> RecordTable { get; set; } = default!;
+
+    [NotNull]
+    private static DataTableDynamicContext? DataTableDynamicContext { get; set; }
+
+    private IEnumerable<IDynamicObject> Unsorted { get; set; } = new List<IDynamicObject>();
+
+    private IEnumerable<IDynamicObject> SortedById { get; set; } = new List<IDynamicObject>();
+
+    private IEnumerable<IDynamicObject> SortedByName { get; set; } = new List<IDynamicObject>();
+
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        CreateDynamicContext();
+        TestSort();
+    }
+
+
+    private void CreateDynamicContext()
+    {
+        DataTable dataTable = new DataTable();
+
+        //Creating some columns
+        DataColumn column = new DataColumn();
+        column.DataType = System.Type.GetType("System.Int32");
+        column.ColumnName = "ID";
+        dataTable.Columns.Add(column);
+
+        column = new DataColumn();
+        column.DataType = System.Type.GetType("System.String");
+        column.ColumnName = "Name";
+        dataTable.Columns.Add(column);
+
+        //Creating some rows
+        DataRow row = dataTable.NewRow();
+        row["ID"] = 1;
+        row["Name"] = "Bob";
+        dataTable.Rows.Add(row);
+
+        row = dataTable.NewRow();
+        row["ID"] = 3;
+        row["Name"] = "Adam";
+        dataTable.Rows.Add(row);
+
+        row = dataTable.NewRow();
+        row["ID"] = 2;
+        row["Name"] = "Jane";
+        dataTable.Rows.Add(row);
+
+
+        DataTableDynamicContext = new DataTableDynamicContext(dataTable, (context, col) =>
+           {
+               var propertyName = col.GetFieldName();
+               var columnType = col.PropertyType;
+               col.Sortable = true;
+               col.Filterable = false;
+           });
+    }
+
+    private void TestSort()
+    {
+        
+        Unsorted = DataTableDynamicContext.GetItems();
+
+        //Trying to simulate sorting IEnumerable<DynamicObject> in a Table
+        SortedById = Unsorted.Sort("ID", SortOrder.Asc);
+
+        SortedByName = Unsorted.Sort("Name", SortOrder.Asc);
+    }
+
+}
